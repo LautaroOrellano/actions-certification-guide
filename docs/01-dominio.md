@@ -885,6 +885,583 @@ jobs:
         run: npm test
 ```
 
+#### Merge de múltiples anchors
+ 
+```yaml
+.base-env: &base-env
+  LOG_LEVEL: info
+  TIMEOUT: 3000
+ 
+.production-env: &production-env
+  NODE_ENV: production
+  CACHE_ENABLED: true
+ 
+.staging-env: &staging-env
+  NODE_ENV: staging
+  DEBUG: true
+ 
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    env:
+      # Merge de múltiples anchors
+      <<: [*base-env, *production-env]
+      REGION: us-east-1
+    steps:
+      - run: echo "Deploy to prod"
+ 
+  deploy-staging:
+    runs-on: ubuntu-latest
+    env:
+      <<: [*base-env, *staging-env]
+      REGION: us-west-2
+    steps:
+      - run: echo "Deploy to staging"
+```
+
+#### Ejemplo complejo con steps reutilizables
+ 
+```yaml
+name: Complex Anchors
+on: [push]
+ 
+# Definir conjuntos de steps reutilizables
+.setup-steps: &setup-steps
+  - uses: actions/checkout@v4
+  - uses: actions/setup-node@v4
+    with:
+      node-version: '20'
+      cache: 'npm'
+  - run: npm ci
+ 
+.test-steps: &test-steps
+  - run: npm run lint
+  - run: npm run type-check
+  - run: npm test
+ 
+.deploy-steps: &deploy-steps
+  - name: Build
+    run: npm run build
+  - name: Deploy
+    run: npm run deploy
+ 
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - *setup-steps
+      - *test-steps
+ 
+  build-and-deploy:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - *setup-steps
+      - *deploy-steps
+```
+
+**Recursos:**
+- [Advanced YAML syntax (YAML spec)](https://yaml.org/spec/1.2.2/#3222-anchors-and-aliases)
+- [GitHub Actions workflow syntax](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions)
+
+### Contexts y Predefined Contexts
+
+Los **contexts** son objetos que contienen información sobre el workflow, runner, jobs, y steps.
+
+#### Principales contexts
+
+**1. `github` context:**
+ 
+```yaml
+steps:
+  - name: GitHub context
+    run: |
+      echo "Repository: ${{ github.repository }}"
+      echo "Repository owner: ${{ github.repository_owner }}"
+      echo "Ref: ${{ github.ref }}"
+      echo "Ref name: ${{ github.ref_name }}"
+      echo "SHA: ${{ github.sha }}"
+      echo "Actor: ${{ github.actor }}"
+      echo "Event name: ${{ github.event_name }}"
+      echo "Workflow: ${{ github.workflow }}"
+      echo "Job: ${{ github.job }}"
+      echo "Run ID: ${{ github.run_id }}"
+      echo "Run number: ${{ github.run_number }}"
+      echo "Run attempt: ${{ github.run_attempt }}"
+```
+
+**2. `github.event` context:**
+ 
+```yaml
+on: [pull_request, issues]
+ 
+jobs:
+  handle-event:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR event data
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "PR number: ${{ github.event.pull_request.number }}"
+          echo "PR title: ${{ github.event.pull_request.title }}"
+          echo "PR author: ${{ github.event.pull_request.user.login }}"
+          echo "Base branch: ${{ github.event.pull_request.base.ref }}"
+          echo "Head branch: ${{ github.event.pull_request.head.ref }}"
+ 
+      - name: Issue event data
+        if: github.event_name == 'issues'
+        run: |
+          echo "Issue number: ${{ github.event.issue.number }}"
+          echo "Issue title: ${{ github.event.issue.title }}"
+          echo "Issue author: ${{ github.event.issue.user.login }}"
+```
+
+**3. `runner` context:**
+ 
+```yaml
+steps:
+  - name: Runner context
+    run: |
+      echo "OS: ${{ runner.os }}"
+      echo "Architecture: ${{ runner.arch }}"
+      echo "Name: ${{ runner.name }}"
+      echo "Temp directory: ${{ runner.temp }}"
+      echo "Tool cache: ${{ runner.tool_cache }}"
+```
+
+**4. `env` context:**
+ 
+```yaml
+env:
+  GLOBAL_VAR: global
+ 
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    env:
+      JOB_VAR: job
+    steps:
+      - name: Use env context
+        env:
+          STEP_VAR: step
+        run: |
+          echo "Global: ${{ env.GLOBAL_VAR }}"
+          echo "Job: ${{ env.JOB_VAR }}"
+          echo "Step: ${{ env.STEP_VAR }}"
+```
+
+**5. `vars` y `secrets` contexts:**
+ 
+```yaml
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use variables and secrets
+        run: |
+          echo "Variable: ${{ vars.MY_VARIABLE }}"
+          echo "Secret present: ${{ secrets.API_KEY != '' }}"
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+```
+
+**6. `inputs` context (workflow_dispatch / workflow_call):**
+ 
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        type: string
+ 
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use inputs
+        run: echo "Deploying to ${{ inputs.environment }}"
+```
+
+**7. `matrix` context:**
+ 
+```yaml
+strategy:
+  matrix:
+    os: [ubuntu, windows]
+    version: [18, 20]
+ 
+steps:
+  - name: Matrix values
+    run: |
+      echo "OS: ${{ matrix.os }}"
+      echo "Version: ${{ matrix.version }}"
+```
+
+**8. `needs` context:**
+ 
+```yaml
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - id: get-version
+        run: echo "version=1.2.3" >> $GITHUB_OUTPUT
+ 
+  job2:
+    needs: job1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use needs context
+        run: |
+          echo "Job1 result: ${{ needs.job1.result }}"
+          echo "Job1 output: ${{ needs.job1.outputs.version }}"
+```
+
+**9. `strategy` context:**
+ 
+```yaml
+strategy:
+  fail-fast: false
+  max-parallel: 3
+ 
+steps:
+  - name: Strategy info
+    run: |
+      echo "Fail-fast: ${{ strategy.fail-fast }}"
+      echo "Max-parallel: ${{ strategy.max-parallel }}"
+      echo "Job index: ${{ strategy.job-index }}"
+      echo "Job total: ${{ strategy.job-total }}"
+```
+
+**10. `job` context:**
+ 
+```yaml
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Job context
+        run: |
+          echo "Status: ${{ job.status }}"
+          echo "Container: ${{ job.container.id }}"
+    services:
+      postgres:
+        image: postgres:15
+    container:
+      image: node:20
+```   
+
+**11. `steps` context:**
+ 
+```yaml
+steps:
+  - name: Step 1
+    id: step1
+    run: echo "output=hello" >> $GITHUB_OUTPUT
+ 
+  - name: Step 2
+    id: step2
+    run: echo "data=world" >> $GITHUB_OUTPUT
+ 
+  - name: Use steps context
+    run: |
+      echo "Step1 outcome: ${{ steps.step1.outcome }}"
+      echo "Step1 output: ${{ steps.step1.outputs.output }}"
+      echo "Step2 output: ${{ steps.step2.outputs.data }}"
+```
+
+**Recursos:**
+- [Contexts](https://docs.github.com/en/actions/learn-github-actions/contexts)
+- [github context](https://docs.github.com/en/actions/learn-github-actions/contexts#github-context)
+- [job context](https://docs.github.com/en/actions/learn-github-actions/contexts#job-context)
+- [steps context](https://docs.github.com/en/actions/learn-github-actions/contexts#steps-context)
+- [runner context](https://docs.github.com/en/actions/learn-github-actions/contexts#runner-context)
+- [matrix context](https://docs.github.com/en/actions/learn-github-actions/contexts#matrix-context)
+- [needs context](https://docs.github.com/en/actions/learn-github-actions/contexts#needs-context)
+
+### Expressions con ${{ }}
+ 
+Las **expressions** permiten evaluación dinámica de valores durante el workflow.
+ 
+#### Evaluación estática vs runtime
+ 
+```yaml
+jobs:
+  example:
+    runs-on: ubuntu-latest
+ 
+    # Evaluación ESTÁTICA (durante parse del workflow)
+    if: ${{ github.ref == 'refs/heads/main' }}
+ 
+    steps:
+      # Evaluación RUNTIME (durante ejecución del step)
+      - name: Check condition
+        if: ${{ steps.previous.outputs.value == 'success' }}
+        run: echo "Condition met"
+```
+
+#### Operadores disponibles
+ 
+```yaml
+steps:
+  - name: Logical operators
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      !contains(github.event.head_commit.message, '[skip ci]')
+    run: echo "All conditions met"
+ 
+  - name: Comparison operators
+    if: |
+      github.run_number > 100 ||
+      github.run_attempt >= 3
+    run: echo "Number check"
+```
+
+**Funciones de string disponibles:**
+ 
+```yaml
+steps:
+  - name: String functions
+    run: |
+      echo "${{ contains(github.ref, 'release') }}"
+      echo "${{ startsWith(github.ref, 'refs/heads/feature/') }}"
+      echo "${{ endsWith(github.ref, '/production') }}"
+      echo "${{ format('Version {0}.{1}', 1, 2) }}"
+      echo "${{ join(matrix.os, ', ') }}"
+```
+
+#### Prevenir secret leakage
+ 
+```yaml
+steps:
+  # ❌ NUNCA hagas esto - el secreto aparecerá en logs
+  - name: Bad practice
+    if: ${{ secrets.API_KEY == 'expected-value' }}
+    run: echo "Secret check"
+ 
+  # ✅ Correcto - usa env y comparación en bash
+  - name: Good practice
+    env:
+      API_KEY: ${{ secrets.API_KEY }}
+    run: |
+      if [ "$API_KEY" = "expected-value" ]; then
+        echo "Secret is valid"
+      fi
+ 
+  # ❌ NUNCA imprimas secretos
+  - name: Bad - secret in output
+    run: echo "Key is ${{ secrets.API_KEY }}"
+ 
+  # ✅ Correcto - mask el secreto
+  - name: Good - masked output
+    run: |
+      echo "::add-mask::${{ secrets.API_KEY }}"
+      echo "Key is configured"
+```
+
+#### Funciones útiles
+ 
+```yaml
+steps:
+  - name: Useful functions
+    run: |
+      # toJSON / fromJSON
+      echo '${{ toJSON(github) }}'
+ 
+      # contains
+      echo "${{ contains(github.event.pull_request.labels.*.name, 'bug') }}"
+ 
+      # startsWith / endsWith
+      echo "${{ startsWith(github.ref, 'refs/tags/v') }}"
+ 
+      # format
+      echo "${{ format('Deploy to {0} on {1}', 'production', '2024-01-01') }}"
+ 
+      # join
+      echo "${{ join(matrix.*, '-') }}"
+ 
+      # hashFiles (para cache keys)
+      echo "${{ hashFiles('**/package-lock.json') }}"
+```
+
+**Recursos:**
+- [Expressions](https://docs.github.com/en/actions/learn-github-actions/expressions)
+- [Context and expression syntax](https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability)
+- [Encrypted secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
+
+### Immutable Actions y Version Pinning
+
+#### ¿Qué son las immutable actions?
+
+GitHub está implementando **immutable actions** en los runners hosted, lo que significa que las actions se ejecutarán desde una ubicación inmutable y verificada.
+
+**Implicaciones:**
+1. Las actions deben pinnearse a versiones específicas
+2. No se pueden usar referencias a ramas (como `@main`)
+3. Se recomienda usar commit SHA completo
+
+```yaml
+steps:
+  # ❌ NO recomendado - referencia a rama (mutable)
+  - uses: actions/checkout@main
+ 
+  # ⚠️ Aceptable - tag semántico (puede cambiar)
+  - uses: actions/checkout@v4
+ 
+  # ✅ MEJOR - tag específico
+  - uses: actions/checkout@v4.1.1
+ 
+  # ✅ MÁS SEGURO - commit SHA completo (immutable)
+  - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+```
+
+#### Estrategia de version pinning
+ 
+```yaml
+name: Secure Actions Usage
+on: [push]
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions de GitHub - pin a SHA con comentario de versión
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+ 
+      - name: Setup Node
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f  # v4.0.2
+        with:
+          node-version: '20'
+ 
+      # Actions de terceros - SIEMPRE pin a SHA
+      - name: Third-party action
+        uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56  # v5.1.0
+        with:
+          context: .
+```
+
+#### Dependabot para actualizar actions
+ 
+Crea `.github/dependabot.yml`:
+ 
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Agrupar actualizaciones
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    reviewers:
+      - "my-team"
+    labels:
+      - "dependencies"
+      - "github-actions"
+```
+ 
+ **Recursos:**
+- [Security hardening for GitHub Actions](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions)
+- [Keeping your actions up to date with Dependabot](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/keeping-your-actions-up-to-date-with-dependabot)
+- [GitHub Changelog](https://github.blog/changelog/)
+
+### Editor Tooling
+ 
+#### GitHub Actions VS Code Extension
+ 
+La extensión oficial para VS Code proporciona:
+- IntelliSense para sintaxis de workflows
+- Validación de YAML en tiempo real
+- Autocompletado de contexts y expressions
+- Snippets para acciones comunes
+  
+**Recursos:**
+- [GitHub Actions VS Code Extension](https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-github-actions)
+- [VS Code GitHub Actions documentation](https://code.visualstudio.com/docs/azure/github-actions)
+
+#### YAML Schema
+ 
+GitHub proporciona un schema JSON para validación de workflows:
+ 
+```yaml
+# Agregar al inicio de tu workflow
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+ 
+name: My Workflow
+on: [push]
+```
+ 
+**En VS Code (`settings.json`):**
+ 
+```json
+{
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": [
+      ".github/workflows/*.yml",
+      ".github/workflows/*.yaml"
+    ]
+  }
+}
+```
+
+**Recursos:**
+- [JSON Schema Store - GitHub Workflow](https://json.schemastore.org/github-workflow.json)
+
+---
+
+## 1.3 Manage workflow execution and outputs
+ 
+### Caching y Artifact Management
+ 
+#### Caching con actions/cache
+
+```yaml
+name: Caching Example
+on: [push]
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+ 
+      # Cache de dependencias de Node.js
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+ 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'  # Cache integrado
+ 
+      - run: npm ci
+      - run: npm run build
+ 
+      # Cache de build artifacts
+      - name: Cache build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            dist
+            .next/cache
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+```
 
 
 
@@ -896,20 +1473,3 @@ jobs:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
