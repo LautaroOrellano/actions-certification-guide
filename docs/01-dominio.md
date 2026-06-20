@@ -582,3 +582,334 @@ steps:
 ### Service Containers
 
 Los service containers te permiten ejecutar servicios como bases de datos, caches, o colas de mensajes durante tus workflows.
+
+#### Ejemplo completo con PostgreSQL
+ 
+```yaml
+name: CI with Database
+on: [push]
+ 
+jobs:
+  test:
+    runs-on: ubuntu-latest
+ 
+    # Definir service containers
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+ 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+ 
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+          REDIS_URL: redis://localhost:6379
+        run: |
+          npm install
+          npm test
+```
+
+#### Service container con MongoDB
+ 
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: secret
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+ 
+    steps:
+      - name: Test with MongoDB
+        env:
+          MONGODB_URI: mongodb://admin:secret@localhost:27017
+        run: npm test
+```
+
+**Opciones importantes:**
+ 
+| Opción | Descripción |
+|--------|-------------|
+| `image` | Imagen de Docker a usar |
+| `env` | Variables de entorno para el container |
+| `ports` | Mapeo de puertos (host:container) |
+| `options` | Opciones de Docker adicionales |
+| Health checks | Aseguran que el servicio esté listo antes de los tests |
+
+**Recursos:**
+- [About service containers](https://docs.github.com/en/actions/using-containerized-services/about-service-containers)
+- [Creating PostgreSQL service containers](https://docs.github.com/en/actions/using-containerized-services/creating-postgresql-service-containers)
+- [Creating Redis service containers](https://docs.github.com/en/actions/using-containerized-services/creating-redis-service-containers)
+
+### Strategy Matrix
+ 
+La **matriz de estrategia** permite ejecutar un job múltiples veces con diferentes configuraciones.
+
+#### Ejemplo básico
+ 
+```yaml
+name: Matrix Strategy
+on: [push]
+ 
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18, 20, 22]
+        # Esto generará 9 jobs (3 OS × 3 versiones)
+ 
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+ 
+      - name: Test on ${{ matrix.os }}
+        run: npm test
+```
+
+#### Include y Exclude
+ 
+```yaml
+strategy:
+  matrix:
+    os: [ubuntu-latest, windows-latest, macos-latest]
+    node-version: [18, 20, 22]
+ 
+    # Agregar combinaciones específicas
+    include:
+      # Prueba experimental con Node 23 solo en Ubuntu
+      - os: ubuntu-latest
+        node-version: 23
+        experimental: true
+ 
+      # Configuración especial para Windows + Node 20
+      - os: windows-latest
+        node-version: 20
+        npm-version: 9
+ 
+    # Excluir combinaciones no deseadas
+    exclude:
+      # No probar Node 18 en macOS
+      - os: macos-latest
+        node-version: 18
+```
+
+#### Fail-fast y max-parallel
+ 
+```yaml
+strategy:
+  # Por defecto, fail-fast es true (si un job falla, cancela los demás)
+  fail-fast: false  # Continuar aunque fallen algunos jobs
+ 
+  # Limitar trabajos concurrentes (ahorro de costos)
+  max-parallel: 2
+ 
+  matrix:
+    os: [ubuntu-latest, windows-latest, macos-latest]
+    node-version: [18, 20, 22]
+```
+
+#### Ejemplo completo con múltiples dimensiones
+ 
+```yaml
+name: Comprehensive Matrix
+on: [push]
+ 
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental || false }}
+ 
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+ 
+        include:
+          # Python 3.13 experimental solo en Ubuntu
+          - os: ubuntu-latest
+            python-version: '3.13'
+            experimental: true
+ 
+          # Configuración de arquitectura específica
+          - os: ubuntu-latest
+            python-version: '3.12'
+            architecture: 'arm64'
+ 
+        exclude:
+          # Python 3.9 está deprecado en macOS más reciente
+          - os: macos-latest
+            python-version: '3.9'
+ 
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.architecture || 'x64' }}
+ 
+      - name: Display matrix values
+        run: |
+          echo "OS: ${{ matrix.os }}"
+          echo "Python: ${{ matrix.python-version }}"
+          echo "Experimental: ${{ matrix.experimental }}"
+```
+
+#### Consideraciones de runners (Ubuntu 20.04 deprecation, Windows Server 2025)
+ 
+```yaml
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          # Ubuntu: Usa ubuntu-latest (actualmente 22.04)
+          # Evita ubuntu-20.04 (deprecado)
+          - os: ubuntu-latest
+            runner-label: ubuntu-22.04
+ 
+          # Windows: windows-latest migrará a Windows Server 2025
+          # Si necesitas Server 2022 específicamente:
+          - os: windows-2022
+            runner-label: windows-2022
+ 
+          # Para preparar migración a 2025:
+          - os: windows-latest
+            runner-label: windows-2025
+            experimental: true
+ 
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental || false }}
+ 
+    steps:
+      - name: Show runner info
+        run: |
+          echo "Runner: ${{ matrix.runner-label }}"
+          echo "OS: ${{ runner.os }}"
+```
+
+**Recursos:**
+- [Using a matrix for your jobs](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
+- [Workflow syntax - strategy](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstrategy)
+- [Ubuntu 20.04 deprecation notice](https://github.blog/changelog/2024-09-16-notice-of-ubuntu-20-04-deprecation-on-github-actions/)
+- [GitHub Changelog](https://github.blog/changelog/)
+
+
+### YAML Anchors y Aliases
+ 
+Los **anchors** (`&`) y **aliases** (`*`) permiten reutilizar configuraciones dentro de un mismo archivo YAML.
+
+#### Ejemplo básico
+ 
+```yaml
+name: YAML Anchors Example
+on: [push]
+ 
+# Definir configuración común con anchor
+.common-env: &common-env
+  NODE_ENV: production
+  LOG_LEVEL: info
+  TIMEOUT: 3000
+ 
+.common-steps: &common-steps
+  - name: Checkout
+    uses: actions/checkout@v4
+  - name: Setup Node
+    uses: actions/setup-node@v4
+    with:
+      node-version: '20'
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Usar alias para reutilizar configuración
+      <<: *common-env
+      BUILD_TYPE: release
+ 
+    steps:
+      # Reutilizar steps comunes
+      - *common-steps
+      - name: Build
+        run: npm run build
+ 
+  test:
+    runs-on: ubuntu-latest
+    env:
+      <<: *common-env
+      BUILD_TYPE: test
+ 
+    steps:
+      - *common-steps
+      - name: Test
+        run: npm test
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
