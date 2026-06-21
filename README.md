@@ -1,8 +1,8 @@
-# 📘 Guía Completa GitHub Actions — Certificación GH-200
+# 📘 Guía Completa GitHub Actions - Certificación GH-200
 
 > Material de estudio exhaustivo, dividido por dominios del examen oficial GitHub Actions (GH-200), con ejemplos de código YAML/JS/Bash, tablas comparativas y links oficiales de documentación.
 
-## 🗂️ Estructura de la guía
+## Estructura de la guía
 
 | Dominio | Peso en el examen | Archivo |
 |---------|-------------------|---------|
@@ -14,7 +14,7 @@
 
 ## 📋 Contenido por dominio
 
-### Domain 1 — Author and Manage Workflows
+### Domain 1 - Author and Manage Workflows
 - Triggers: scheduled, manual (`workflow_dispatch`), webhook, repository events
 - Permissions y scopes
 - `workflow_call` (reusable workflows) con inputs/secrets
@@ -29,7 +29,7 @@
 - Caching, artifacts, retention policies via REST API
 - `GITHUB_STEP_SUMMARY`, badges, environment protections
 
-### Domain 2 — Consume and Troubleshoot Workflows
+### Domain 2 - Consume and Troubleshoot Workflows
 - Interpretar triggers y resultados desde logs
 - Debugging de workflows fallidos
 - Matrix expansions y re-run de jobs individuales
@@ -37,7 +37,7 @@
 - Starter workflows vs Reusable workflows vs Composite actions
 - Disable vs Delete de workflows
 
-### Domain 3 — Author and Maintain Actions
+### Domain 3 - Author and Maintain Actions
 - Tipos de actions: JavaScript, Docker, Composite
 - Estructura de `action.yml` y metadata
 - Workflow commands dentro de actions (`@actions/core`)
@@ -45,7 +45,7 @@
 - Publicación en GitHub Marketplace
 - Versionado semántico y release strategies
 
-### Domain 4 — Manage GitHub Actions for the Enterprise
+### Domain 4 - Manage GitHub Actions for the Enterprise
 - Gobernanza de actions y workflows a nivel organización
 - Políticas de uso organizacional
 - GitHub-hosted vs Self-hosted runners
@@ -54,7 +54,7 @@
 - Troubleshooting de runners
 - Secrets y variables (repo, environment, organización) + REST API
 
-### Domain 5 — Secure and Optimize Automation
+### Domain 5 - Secure and Optimize Automation
 - Environment protections y approval gates
 - Trustworthy actions del Marketplace
 - Mitigación de script injection
@@ -65,7 +65,7 @@
 - Artifact attestations / SLSA provenance
 - Optimización de costos y performance (cache, matrix, concurrency, sharding)
 
-## 🔗 Recursos generales
+## Recursos generales
 
 - [GitHub Actions documentation](https://docs.github.com/en/actions)
 - [Workflow syntax reference](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions)
@@ -76,12 +76,12 @@
 - [GitHub CLI](https://cli.github.com/)
 - [GitHub Certifications](https://docs.github.com/en/get-started/showcase-your-expertise-with-github-certifications/about-github-certifications)
 
-## 💡 Tips de examen
+## Tips de examen
 
-- La certificación pone fuerte énfasis en sintaxis YAML exacta — practicá escribiendo workflows de memoria.
-- Entendé bien la diferencia entre **starter workflow**, **reusable workflow** y **composite action** — es un tema recurrente.
+- La certificación pone fuerte énfasis en sintaxis YAML exacta - practicá escribiendo workflows de memoria.
+- Entendé bien la diferencia entre **starter workflow**, **reusable workflow** y **composite action** - es un tema recurrente.
 - Dominá el ciclo de vida del `GITHUB_TOKEN`, sus permisos por defecto y cuándo usar OIDC en lugar de secrets de cloud.
-- Practicá con `matrix` (include/exclude/fail-fast) — suelen pedir interpretar resultados de expansión.
+- Practicá con `matrix` (include/exclude/fail-fast) - suelen pedir interpretar resultados de expansión.
 - Repasá los workflow commands (`GITHUB_OUTPUT`, `GITHUB_ENV`, `GITHUB_STEP_SUMMARY`, `::add-mask::`, etc.) porque aparecen en preguntas de troubleshooting.
 
 ---
