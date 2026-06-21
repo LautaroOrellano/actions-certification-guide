@@ -1463,6 +1463,493 @@ jobs:
             ${{ runner.os }}-build-
 ```
 
+#### Cache para diferentes lenguajes
+ 
+**Python:**
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: ~/.cache/pip
+    key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+    restore-keys: |
+      ${{ runner.os }}-pip-
+```
+
+**Java/Maven:**
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: ~/.m2/repository
+    key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+    restore-keys: |
+      ${{ runner.os }}-maven-
+```
+
+**Ruby:**
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: vendor/bundle
+    key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+    restore-keys: |
+      ${{ runner.os }}-gems-
+```
+
+**Recursos:**
+- [Caching dependencies](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows)
+- [actions/cache](https://github.com/actions/cache)
+
+
+### Artifacts
+ 
+```yaml
+name: Artifacts Example
+on: [push]
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npm run build
+ 
+      # Upload artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: |
+            dist/
+            build/
+          retention-days: 5  # Retención por 5 días
+          if-no-files-found: error  # Fallar si no hay archivos
+ 
+      # Upload logs
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs
+          path: logs/*.log
+          retention-days: 14
+ 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # Download artifacts
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-files
+          path: ./dist
+ 
+      - name: Deploy
+        run: ./deploy.sh
+```
+
+### Retention Policies via REST API
+ 
+```bash
+# Listar artifacts
+curl -L \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  https://api.github.com/repos/OWNER/REPO/actions/artifacts
+ 
+# Eliminar artifact específico
+curl -L \
+  -X DELETE \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  https://api.github.com/repos/OWNER/REPO/actions/artifacts/ARTIFACT_ID
+ 
+# Listar workflow runs
+curl -L \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  https://api.github.com/repos/OWNER/REPO/actions/runs
+ 
+# Eliminar workflow run logs
+curl -L \
+  -X DELETE \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  https://api.github.com/repos/OWNER/REPO/actions/runs/RUN_ID/logs
+```
+ 
+**Script para limpiar artifacts antiguos:**
+ 
+```bash
+#!/bin/bash
+# cleanup-artifacts.sh
+ 
+REPO="owner/repo"
+DAYS_OLD=30
+ 
+# Obtener artifacts más antiguos que DAYS_OLD días
+CUTOFF_DATE=$(date -d "$DAYS_OLD days ago" --iso-8601)
+ 
+curl -L \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  "https://api.github.com/repos/$REPO/actions/artifacts?per_page=100" \
+| jq -r ".artifacts[] | select(.created_at < \"$CUTOFF_DATE\") | .id" \
+| while read artifact_id; do
+  echo "Deleting artifact $artifact_id"
+  curl -L \
+    -X DELETE \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    "https://api.github.com/repos/$REPO/actions/artifacts/$artifact_id"
+done
+```
+
+**Recursos:**
+- [Storing workflow data as artifacts](https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts)
+- [actions/upload-artifact](https://github.com/actions/upload-artifact)
+- [actions/download-artifact](https://github.com/actions/download-artifact)
+- [Artifacts REST API](https://docs.github.com/en/rest/actions/artifacts)
+
+
+### Pasar datos entre jobs y steps
+ 
+#### Entre steps (mismo job)
+ 
+**Usando outputs:**
+```yaml
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate version
+        id: version
+        run: |
+          VERSION="1.2.3"
+          echo "number=$VERSION" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+ 
+      - name: Use version
+        run: |
+          echo "Version: ${{ steps.version.outputs.number }}"
+          echo "Date: ${{ steps.version.outputs.date }}"
+```
+ 
+**Usando environment files:**
+```yaml
+steps:
+  - name: Set environment variable
+    run: |
+      echo "BUILD_ID=$(uuidgen)" >> $GITHUB_ENV
+      echo "DEPLOY_PATH=/opt/app" >> $GITHUB_ENV
+ 
+  - name: Use environment variable
+    run: |
+      echo "Build ID: $BUILD_ID"
+      echo "Deploy path: $DEPLOY_PATH"
+```
+ 
+#### Entre jobs
+ 
+**Usando job outputs:**
+```yaml
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      artifact-path: ${{ steps.build.outputs.path }}
+    steps:
+      - id: get-version
+        run: echo "version=1.2.3" >> $GITHUB_OUTPUT
+ 
+      - id: build
+        run: |
+          echo "path=dist/app.tar.gz" >> $GITHUB_OUTPUT
+ 
+  job2:
+    needs: job1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use outputs from job1
+        run: |
+          echo "Version from job1: ${{ needs.job1.outputs.version }}"
+          echo "Artifact path: ${{ needs.job1.outputs.artifact-path }}"
+```
+ 
+**Usando artifacts:**
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "data" > data.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: my-data
+          path: data.txt
+ 
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: my-data
+      - run: cat data.txt
+```
+ 
+#### Reusable workflow outputs
+ 
+```yaml
+# reusable-workflow.yml
+on:
+  workflow_call:
+    outputs:
+      build-version:
+        description: "Version that was built"
+        value: ${{ jobs.build.outputs.version }}
+      artifact-name:
+        description: "Name of the artifact"
+        value: ${{ jobs.build.outputs.artifact }}
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.number }}
+      artifact: ${{ steps.upload.outputs.artifact-name }}
+    steps:
+      - id: version
+        run: echo "number=1.2.3" >> $GITHUB_OUTPUT
+      - id: upload
+        run: echo "artifact-name=build-artifact" >> $GITHUB_OUTPUT
+```
+ 
+```yaml
+# caller-workflow.yml
+jobs:
+  call-reusable:
+    uses: ./.github/workflows/reusable-workflow.yml
+ 
+  use-outputs:
+    needs: call-reusable
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Build version: ${{ needs.call-reusable.outputs.build-version }}"
+          echo "Artifact: ${{ needs.call-reusable.outputs.artifact-name }}"
+```
+
+**Recursos:**
+- [Defining outputs for jobs](https://docs.github.com/en/actions/using-jobs/defining-outputs-for-jobs)
+- [Passing information between jobs](https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts#passing-data-between-jobs-in-a-workflow)
+
+
+### Job Summaries con GITHUB_STEP_SUMMARY
+ 
+Los **job summaries** permiten crear reportes ricos en Markdown que se muestran en la UI de GitHub Actions.
+
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - name: Run tests
+        run: |
+          # Ejecutar tests y capturar resultados
+          npm test > test-results.txt || true
+ 
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+ 
+          # Tabla de resultados
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Passed | 45 |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ Failed | 2 |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⏭️ Skipped | 3 |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⏱️ Duration | 2m 34s |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+ 
+          # Coverage
+          echo "### 📊 Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lines**: 87.5%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branches**: 72.3%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Functions**: 91.2%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+ 
+          # Links
+          echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [Full Report](https://example.com/report)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Coverage Details](https://example.com/coverage)" >> $GITHUB_STEP_SUMMARY
+```
+
+**Ejemplo avanzado con imágenes y code blocks:**
+ 
+```yaml
+- name: Advanced summary
+  run: |
+    cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+    ## 🚀 Deployment Summary
+ 
+    ### Status: ✅ SUCCESS
+ 
+    | Environment | Status | URL |
+    |-------------|--------|-----|
+    | Production | ✅ Deployed | [Visit](https://prod.example.com) |
+    | Staging | ⏭️ Skipped | - |
+ 
+    ### 📦 Deployed Version
+```
+    Version: 1.2.3
+    Commit: abc123
+    Branch: main
+```
+ 
+    ### ⚠️ Warnings
+    > **Note**: This deployment includes breaking changes.
+    > Please review the [migration guide](https://docs.example.com/migrate).
+ 
+    ---
+    _Deployed by ${{ github.actor }} at $(date)_
+    EOF
+```
+
+**Recursos:**
+- [Adding a job summary](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#adding-a-job-summary)
+- [Job summaries examples (GitHub Blog)](https://github.blog/2022-05-09-supercharging-github-actions-with-job-summaries/)
+
+
+### Workflow Status Badges
+ 
+Los **badges** muestran el estado del workflow en tu README.
+ 
+**Sintaxis:**
+```markdown
+![Workflow Status](https://github.com/OWNER/REPO/actions/workflows/WORKFLOW_FILE/badge.svg)
+ 
+<!-- Con rama específica -->
+![Workflow Status](https://github.com/OWNER/REPO/actions/workflows/WORKFLOW_FILE/badge.svg?branch=main)
+ 
+<!-- Con evento específico -->
+![Workflow Status](https://github.com/OWNER/REPO/actions/workflows/WORKFLOW_FILE/badge.svg?event=push)
+```
+ 
+**Ejemplos:**
+ 
+```markdown
+# My Project
+ 
+![CI](https://github.com/myuser/myrepo/actions/workflows/ci.yml/badge.svg)
+![Deploy](https://github.com/myuser/myrepo/actions/workflows/deploy.yml/badge.svg?branch=main)
+![Tests](https://github.com/myuser/myrepo/actions/workflows/test.yml/badge.svg?event=pull_request)
+ 
+<!-- Con link -->
+[![CI Status](https://github.com/myuser/myrepo/actions/workflows/ci.yml/badge.svg)](https://github.com/myuser/myrepo/actions/workflows/ci.yml)
+```
+
+**Recursos:**
+- [Adding a workflow status badge](https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/adding-a-workflow-status-badge)
+
+### Environment Protections
+ 
+Los **environment protections** agregan gates de aprobación y reglas antes de desplegar.
+ 
+```yaml
+name: Deploy with Protection
+on: [push]
+ 
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    environment: staging  # Sin protección
+    steps:
+      - run: echo "Deploy to staging"
+ 
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://prod.example.com
+    steps:
+      - run: echo "Deploy to production"
+```
+
+**Configurar protections en GitHub UI:**
+ 
+1. Ve a `Settings` → `Environments`
+2. Crea/edita environment "production"
+3. Configura:
+   - **Required reviewers**: Quién debe aprobar
+   - **Wait timer**: Esperar X minutos antes de desplegar
+   - **Deployment branches**: Qué ramas pueden desplegar
+   - **Environment secrets**: Secretos específicos del ambiente
+**Ejemplo con múltiples ambientes:**
+ 
+```yaml
+name: Multi-Environment Deploy
+on:
+  push:
+    branches: [main, develop]
+ 
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment:
+          - name: development
+            branch: develop
+            url: https://dev.example.com
+          - name: staging
+            branch: main
+            url: https://staging.example.com
+          - name: production
+            branch: main
+            url: https://prod.example.com
+            needs_approval: true
+ 
+    # Filtrar por rama
+    if: |
+      (matrix.environment.branch == 'develop' && github.ref == 'refs/heads/develop') ||
+      (matrix.environment.branch == 'main' && github.ref == 'refs/heads/main')
+ 
+    environment:
+      name: ${{ matrix.environment.name }}
+      url: ${{ matrix.environment.url }}
+ 
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to ${{ matrix.environment.name }}
+        run: |
+          echo "Deploying to ${{ matrix.environment.url }}"
+```
+
+**Recursos:**
+- [Using environments for deployment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment)
+- [Environment protection rules](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#environment-protection-rules)
+
+---
+ 
+**➡️ Siguiente:** [Domain 2: Consume and Troubleshoot Workflows](./02-domain2-consume-troubleshoot-workflows.md)
+
+
+
+
+
+
+
+
+
+
 
 
 
