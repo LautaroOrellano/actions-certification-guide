@@ -2,7 +2,7 @@
  
 > Guía completa para la certificación GitHub Actions GH-200
  
-## 📑 Tabla de Contenidos
+## Tabla de Contenidos
  
 - [2.1 Interpret workflow behavior and results](#21-interpret-workflow-behavior-and-results)
 - [2.2 Access workflow artifacts and logs](#22-access-workflow-artifacts-and-logs)
@@ -439,6 +439,7 @@ steps:
 - No se ejecutará automáticamente
 - Puede ser re-habilitado en cualquier momento
 - Los runs históricos permanecen
+
 ```bash
 # En la UI: Actions → Select workflow → "..." → Disable workflow
  
@@ -449,9 +450,32 @@ curl -X PUT \
   https://api.github.com/repos/OWNER/REPO/actions/workflows/WORKFLOW_ID/disable
 ```
 
+**Eliminar un workflow:**
+- Eliminar el archivo `.github/workflows/workflow.yml`
+- Los runs históricos permanecen
+- No puede ser restaurado sin el archivo
+```bash
+# Eliminar archivo
+git rm .github/workflows/old-workflow.yml
+git commit -m "Remove old workflow"
+git push
+```
 
+**Diferencias:**
+ 
+| Acción | Archivo | Runs históricos | Reversible |
+|--------|---------|-----------------|------------|
+| **Disable** | Permanece | Permanecen | Sí (re-enable) |
+| **Delete** | Se elimina | Permanecen | Solo restaurando archivo |
+ 
+**Recursos:**
+- [Disabling and enabling a workflow](https://docs.github.com/en/actions/managing-workflow-runs/disabling-and-enabling-a-workflow)
+- [Workflows REST API](https://docs.github.com/en/rest/actions/workflows)
 
-
+---
+ 
+**⬅️ Anterior:** [Domain 1: Author and Manage Workflows](./01-domain1-author-manage-workflows.md)
+**➡️ Siguiente:** [Domain 3: Author and Maintain Actions](./03-domain3-author-maintain-actions.md)
 
 
 
