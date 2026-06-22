@@ -1,4 +1,4 @@
-# 📘 Guía Completa GitHub Actions - Certificación GH-200
+# Guía Completa GitHub Actions - Certificación GH-200
 
 > Material de estudio exhaustivo, dividido por dominios del examen oficial GitHub Actions (GH-200), con ejemplos de código YAML/JS/Bash, tablas comparativas y links oficiales de documentación.
 
