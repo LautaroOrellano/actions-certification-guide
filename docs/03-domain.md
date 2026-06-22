@@ -611,7 +611,7 @@ steps:
       token: ${{ secrets.REPO_ACCESS_TOKEN }}
 ```
  
-📖 **Recursos:**
+**Recursos:**
 - [About custom actions](https://docs.github.com/en/actions/creating-actions/about-custom-actions)
 - [Sharing actions and workflows from your private repository](https://docs.github.com/en/actions/creating-actions/sharing-actions-and-workflows-from-your-private-repository)
 ### Publicar en GitHub Marketplace
@@ -837,7 +837,7 @@ jobs:
 - Timeout issues
 ```
  
-📖 **Recursos:**
+**Recursos:**
 - [Releasing and maintaining actions](https://docs.github.com/en/actions/creating-actions/releasing-and-maintaining-actions)
 - [Semantic Versioning](https://semver.org/)
 - [Keep a Changelog](https://keepachangelog.com/)
