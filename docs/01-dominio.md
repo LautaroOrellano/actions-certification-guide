@@ -1,18 +1,27 @@
 # Domain 1: Author and Manage Workflows (20-25%)
 
+> Guía completa para la certificación GitHub Actions GH-200
+ 
+## 📑 Tabla de Contenidos
+ 
+- [1.1 Configure workflow triggers and events](#11-configure-workflow-triggers-and-events)
+- [1.2 Design and implement workflow structure](#12-design-and-implement-workflow-structure)
+- [1.3 Manage workflow execution and outputs](#13-manage-workflow-execution-and-outputs)
+
 ---
 
 ## 1.1 Configure workflow triggers and events
-
+ 
 ### ¿Qué son los triggers?
-
-Los triggers son eventos que inician la ejecución de un workflow. GitHub Actions soporta múltiples tipos de eventos que pueden activar tus automatizaciones.
-
-Tipos de triggers principales:
-
-1. Scheduled Events (Eventos Programados)
-Usa la sintaxis cron para ejecutar workflows en horarios específicos.
-
+ 
+Los **triggers** son eventos que inician la ejecución de un workflow. GitHub Actions soporta múltiples tipos de eventos que pueden activar tus automatizaciones.
+ 
+### Tipos de triggers principales
+ 
+#### 1. Scheduled Events (Eventos Programados)
+ 
+Usa la sintaxis `cron` para ejecutar workflows en horarios específicos.
+ 
 ```yaml
 name: Scheduled Workflow
 on:
@@ -22,19 +31,32 @@ on:
     # Ejecuta cada lunes a las 9 AM UTC
     - cron: '0 9 * * 1'
 ```
+ 
+**Sintaxis cron:**
+ 
+```
+* * * * *
+│ │ │ │ │
+│ │ │ │ └─── día de la semana (0-6, domingo=0)
+│ │ │ └───── mes (1-12)
+│ │ └─────── día del mes (1-31)
+│ └───────── hora (0-23)
+└─────────── minuto (0-59)
+```
+ 
+Ejemplos:
+- `0 0 * * *` - Medianoche todos los días
+- `*/15 * * * *` - Cada 15 minutos
+- `0 9-17 * * 1-5` - Cada hora de 9am a 5pm, lunes a viernes
 
-Sintaxis cron:
+**Recursos:**
+- [Events that trigger workflows - Scheduled](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule)
+- [Cron syntax reference](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule)
 
-- * * * * * = minuto hora día mes día-semana
-- Ejemplos:
-
-    - 0 0 * * * - Medianoche todos los días
-    - */15 * * * * - Cada 15 minutos
-    - 0 9-17 * * 1-5 - Cada hora de 9am a 5pm, lunes a viernes
-
-2. Manual Events (Eventos Manuales)
+#### 2. Manual Events (Eventos Manuales)
+ 
 Permite ejecutar workflows manualmente desde la interfaz de GitHub o mediante la API.
-
+ 
 ```yaml
 name: Manual Deployment
 on:
@@ -67,16 +89,18 @@ on:
           - warning
           - debug
 ```
-
-Tipos de inputs disponibles:
-
-- string - Texto libre
-- choice - Menú desplegable con opciones predefinidas
-- boolean - Checkbox verdadero/falso
-- environment - Selector de ambiente (con protecciones configuradas)
-
-Acceso a los inputs en el workflow:
-
+ 
+**Tipos de inputs disponibles:**
+ 
+| Tipo | Descripción |
+|------|-------------|
+| `string` | Texto libre |
+| `choice` | Menú desplegable con opciones predefinidas |
+| `boolean` | Checkbox verdadero/falso |
+| `environment` | Selector de ambiente (con protecciones configuradas) |
+ 
+**Acceso a los inputs en el workflow:**
+ 
 ```yaml
 jobs:
   deploy:
@@ -89,10 +113,15 @@ jobs:
             echo "Debug mode enabled"
           fi
 ```
+ 
+**Recursos:**
+- [workflow_dispatch event](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_dispatch)
+- [Manual triggers documentation](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow)
 
-3. Webhook Events (Eventos de Webhook)
-Los webhooks se activan por eventos del repositorio como push, pull request, issues, etc
-
+#### 3. Webhook Events (Eventos de Webhook)
+ 
+Los webhooks se activan por eventos del repositorio como push, pull request, issues, etc.
+ 
 ```yaml
 name: CI Pipeline
 on:
@@ -119,21 +148,26 @@ on:
   release:
     types: [published, created]
 ```
+ 
+**Eventos webhook más importantes:**
+ 
+| Evento | Cuándo se activa | Uso común |
+|--------|------------------|-----------|
+| `push` | Al hacer push a una rama | CI/CD, tests |
+| `pull_request` | Acciones en PRs | Code review, tests |
+| `pull_request_target` | PR de fork con permisos | Build de PRs externos |
+| `issues` | Operaciones en issues | Automatización de triaje |
+| `release` | Publicación de release | Despliegues |
+| `workflow_run` | Otro workflow completa | Workflows encadenados |
+ 
+**Recursos:**
+- [Events that trigger workflows](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows)
+- [Webhook events and payloads](https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads)
 
-Eventos webhook más importantes:
-
-Evento | Cúando se activa | Uso común |
--------|------------------|-----------|
-push | Al hacer push a una rama | CI/CD, tests |
-pull_request | Acciones en PRs |Code review, tests |
-pull_request_target | PR de fork con permisos |Build de PRs externos |
-issues | Operaciones en issues | Automatización de triaje |
-release | Publicación de release | Despliegues | 
-workflow_run | Otro workflow completa | Workflows encadenados |
-
-4. Repository Events
+#### 4. Repository Events
+ 
 Eventos relacionados con cambios en el repositorio:
-
+ 
 ```yaml
 name: Repository Events
 on:
@@ -145,19 +179,24 @@ on:
   public:  # Repositorio hecho público
   watch:   # Repositorio marcado con estrella
 ```
+ 
+**Recursos:**
+- [Repository dispatch event](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#repository_dispatch)
 
 ### Scopes, Permissions y Events apropiados
-
+ 
+#### Permissions (Permisos)
+ 
 ```yaml
 name: Secure Workflow
 on: [push]
-
+ 
 # Permisos a nivel de workflow (todos los jobs)
 permissions:
   contents: read
   pull-requests: write
   issues: write
-
+ 
 jobs:
   job1:
     runs-on: ubuntu-latest
@@ -168,19 +207,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 ```
-
-Niveles de permisos:
-
-- read - Solo lectura
-- write - Lectura y escritura
-- none - Sin acceso
-
-Permisos disponibles:
-
-- actions, checks, contents, deployments, id-token, issues, discussions, packages, pages, pull-requests, repository-projects, security-events, statuses
+ 
+**Niveles de permisos:**
+- `read` - Solo lectura
+- `write` - Lectura y escritura
+- `none` - Sin acceso
+**Permisos disponibles:**
+`actions`, `checks`, `contents`, `deployments`, `id-token`, `issues`, `discussions`, `packages`, `pages`, `pull-requests`, `repository-projects`, `security-events`, `statuses`
+ 
+**Recursos:**
+- [Permissions for the GITHUB_TOKEN](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token)
+- [Workflow syntax - permissions](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions)
 
 #### Reusable Workflows con workflow_call
-
+ 
 ```yaml
 # .github/workflows/reusable-deploy.yml
 name: Reusable Deploy Workflow
@@ -208,7 +248,7 @@ on:
       deployment-url:
         description: "URL of the deployment"
         value: ${{ jobs.deploy.outputs.url }}
-
+ 
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -223,14 +263,14 @@ jobs:
         env:
           DEPLOY_TOKEN: ${{ secrets.deploy-token }}
 ```
-
-#### Llamada al workflow reutilizable:
-
+ 
+**Llamada al workflow reutilizable:**
+ 
 ```yaml
 # .github/workflows/main.yml
 name: Main Workflow
 on: [push]
-
+ 
 jobs:
   call-deploy:
     uses: ./.github/workflows/reusable-deploy.yml
@@ -241,7 +281,7 @@ jobs:
     secrets:
       deploy-token: ${{ secrets.DEPLOY_TOKEN }}
       api-key: ${{ secrets.API_KEY }}
-  
+ 
   use-output:
     needs: call-deploy
     runs-on: ubuntu-latest
@@ -249,19 +289,23 @@ jobs:
       - name: Use deployment URL
         run: echo "Deployed to ${{ needs.call-deploy.outputs.deployment-url }}"
 ```
+ 
+**Recursos:**
+- [Reusing workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows)
+- [workflow_call event](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_call)
 
 ---
-
+ 
 ## 1.2 Design and implement workflow structure
-
+ 
 ### Jobs, Steps y Conditional Logic
-
-Estructura básica:
-
+ 
+#### Estructura básica
+ 
 ```yaml
 name: Complete Workflow Structure
 on: [push]
-
+ 
 jobs:
   # Job 1: Build
   build:
@@ -269,18 +313,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+ 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+ 
       - name: Install dependencies
         run: npm ci
-      
+ 
       - name: Build
         run: npm run build
-  
+ 
   # Job 2: Test (conditional)
   test:
     runs-on: ubuntu-latest
@@ -289,10 +333,11 @@ jobs:
       - name: Run tests
         run: npm test
 ```
-
+ 
 #### Conditional Logic (Lógica Condicional)
-
-A nivel de job:
+ 
+**A nivel de job:**
+ 
 ```yaml
 jobs:
   deploy-staging:
@@ -300,21 +345,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Deploying to staging"
-  
+ 
   deploy-production:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - run: echo "Deploying to production"
-  
+ 
   skip-on-bot:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - run: echo "Not a bot"
 ```
-
-A nivel de step:
+ 
+**A nivel de step:**
+ 
 ```yaml
 jobs:
   conditional-steps:
@@ -322,39 +368,46 @@ jobs:
     steps:
       - name: Always runs
         run: echo "This always runs"
-      
+ 
       - name: Only on main branch
         if: github.ref == 'refs/heads/main'
         run: echo "Main branch"
-      
+ 
       - name: Only on failure
         if: failure()
         run: echo "Previous step failed"
-      
+ 
       - name: Only on success
         if: success()
         run: echo "All previous steps succeeded"
-      
+ 
       - name: Always run cleanup
         if: always()
         run: echo "Cleanup"
-      
+ 
       - name: Only if cancelled
         if: cancelled()
         run: echo "Workflow was cancelled"
 ```
-
-Funciones de estado:
-
-- success() - Todos los pasos anteriores exitosos
-- failure() - Algún paso anterior falló
-- cancelled() - Workflow cancelado
-- always() - Siempre ejecuta
+ 
+**Funciones de estado:**
+ 
+| Función | Descripción |
+|---------|-------------|
+| `success()` | Todos los pasos anteriores exitosos |
+| `failure()` | Algún paso anterior falló |
+| `cancelled()` | Workflow cancelado |
+| `always()` | Siempre ejecuta |
+ 
+**Recursos:**
+- [Workflow syntax - jobs](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobs)
+- [Expressions and contexts](https://docs.github.com/en/actions/learn-github-actions/expressions)
+- [Status check functions](https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions)
 
 ### Dependencies between jobs
-
-Dependencias con `needs`:
-
+ 
+#### Dependencias con needs
+ 
 ```yaml
 jobs:
   # Job 1: Setup
@@ -362,28 +415,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Setting up"
-  
+ 
   # Job 2: Build (depende de setup)
   build:
     needs: setup
     runs-on: ubuntu-latest
     steps:
       - run: echo "Building"
-  
+ 
   # Job 3: Test (depende de build)
   test:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - run: echo "Testing"
-  
+ 
   # Job 4: Deploy (depende de build y test)
   deploy:
     needs: [build, test]
     runs-on: ubuntu-latest
     steps:
       - run: echo "Deploying"
-  
+ 
   # Job 5: Siempre se ejecuta (incluso si test falla)
   notify:
     needs: [build, test, deploy]
@@ -392,23 +445,23 @@ jobs:
     steps:
       - run: echo "Sending notification"
 ```
-
-Diagrama de dependencias:
-
-```bash
+ 
+**Diagrama de dependencias:**
+ 
+```
 setup → build → test → deploy → notify
               ↘      ↗
 ```
-
-Condicionales con needs:
-
+ 
+**Condicionales con needs:**
+ 
 ```yaml
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - run: npm test
-  
+ 
   deploy:
     needs: test
     # Solo deploy si test fue exitoso
@@ -416,7 +469,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Deploying"
-  
+ 
   cleanup:
     needs: test
     # Cleanup incluso si test falló
@@ -425,22 +478,26 @@ jobs:
     steps:
       - run: echo "Cleanup"
 ```
+ 
+**Recursos:**
+- [Using jobs in a workflow](https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow)
+- [Workflow syntax - jobs.job_id.needs](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idneeds)
 
 ### Workflow Commands y Environment Variables
-
-Environment Variables (Variables de Entorno)
-
-Definición a diferentes niveles:
-
+ 
+#### Environment Variables (Variables de Entorno)
+ 
+**Definición a diferentes niveles:**
+ 
 ```yaml
 name: Environment Variables
 on: [push]
-
+ 
 # Variables a nivel de workflow
 env:
   WORKFLOW_VAR: 'workflow-level'
   NODE_VERSION: '20'
-
+ 
 jobs:
   example:
     runs-on: ubuntu-latest
@@ -448,7 +505,7 @@ jobs:
     env:
       JOB_VAR: 'job-level'
       BUILD_ENV: 'production'
-    
+ 
     steps:
       - name: Step with env vars
         # Variables a nivel de step
@@ -461,10 +518,10 @@ jobs:
           echo "Step var: $STEP_VAR"
           echo "Node version: $NODE_VERSION"
 ```
-
-Variables de entorno predefinidas:
-
-```yaml 
+ 
+**Variables de entorno predefinidas:**
+ 
+```yaml
 steps:
   - name: Show GitHub environment variables
     run: |
@@ -476,51 +533,60 @@ steps:
       echo "Run ID: $GITHUB_RUN_ID"
       echo "Run Number: $GITHUB_RUN_NUMBER"
 ```
+ 
+**Recursos:**
+- [Environment variables](https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables)
+- [Workflow syntax - env](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#env)
 
-### Workflow Commands
+#### Workflow Commands
+ 
 Los workflow commands permiten comunicarte con el runner durante la ejecución.
-
-1. Setting outputs (GITHUB_OUTPUT):
-```yaml 
+ 
+**1. Setting outputs (GITHUB_OUTPUT):**
+ 
+```yaml
 steps:
   - name: Set output
     id: set-output
     run: |
       echo "version=1.2.3" >> $GITHUB_OUTPUT
       echo "release-date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-  
+ 
   - name: Use output
     run: |
       echo "Version: ${{ steps.set-output.outputs.version }}"
       echo "Date: ${{ steps.set-output.outputs.release-date }}"
 ```
-
-2. Setting environment variables (GITHUB_ENV):
-```yaml 
+ 
+**2. Setting environment variables (GITHUB_ENV):**
+ 
+```yaml
 steps:
   - name: Set env var
     run: |
       echo "MY_VAR=hello" >> $GITHUB_ENV
       echo "DEPLOY_URL=https://example.com" >> $GITHUB_ENV
-  
+ 
   - name: Use env var
     run: |
       echo "Value: $MY_VAR"
       echo "URL: $DEPLOY_URL"
 ```
-
-3. Setting PATH:
-```yaml 
+ 
+**3. Setting PATH:**
+ 
+```yaml
 steps:
   - name: Add to PATH
     run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-  
+ 
   - name: Command now available
     run: my-custom-command
 ```
-
-4. Job summaries (GITHUB_STEP_SUMMARY):
-```yaml 
+ 
+**4. Job summaries (GITHUB_STEP_SUMMARY):**
+ 
+```yaml
 steps:
   - name: Generate summary
     run: |
@@ -532,23 +598,25 @@ steps:
       echo "### Coverage" >> $GITHUB_STEP_SUMMARY
       echo "**87%** line coverage" >> $GITHUB_STEP_SUMMARY
 ```
-
-5. Grouping log lines:
-```yaml 
+ 
+**5. Grouping log lines:**
+ 
+```yaml
 steps:
   - name: Group logs
     run: |
       echo "::group::Building application"
       npm run build
       echo "::endgroup::"
-      
+ 
       echo "::group::Running tests"
       npm test
       echo "::endgroup::"
 ```
-
-6. Setting debug, notice, warning, error messages:
-```yaml 
+ 
+**6. Setting debug, notice, warning, error messages:**
+ 
+```yaml
 steps:
   - name: Messages
     run: |
@@ -557,9 +625,10 @@ steps:
       echo "::warning::This is a warning"
       echo "::error::This is an error"
 ```
-
-7. Masking values (ocultar secretos en logs):
-```yaml 
+ 
+**7. Masking values (ocultar secretos en logs):**
+ 
+```yaml
 steps:
   - name: Mask secret
     run: |
@@ -567,9 +636,10 @@ steps:
       echo "::add-mask::$SECRET_VALUE"
       echo "Value is: $SECRET_VALUE"  # Se mostrará como ***
 ```
-
-8. Stop commands:
-```yaml 
+ 
+**8. Stop commands:**
+ 
+```yaml
 steps:
   - name: Stop processing commands
     run: |
@@ -578,11 +648,16 @@ steps:
       echo "::pause-token::"
       echo "::warning::This will be processed"
 ```
+ 
+**Recursos:**
+- [Workflow commands](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions)
+- [Setting environment variables](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-environment-variable)
+- [Setting output parameters](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-output-parameter)
 
 ### Service Containers
-
-Los service containers te permiten ejecutar servicios como bases de datos, caches, o colas de mensajes durante tus workflows.
-
+ 
+Los **service containers** te permiten ejecutar servicios como bases de datos, caches, o colas de mensajes durante tus workflows.
+ 
 #### Ejemplo completo con PostgreSQL
  
 ```yaml
@@ -630,7 +705,7 @@ jobs:
           npm install
           npm test
 ```
-
+ 
 #### Service container con MongoDB
  
 ```yaml
@@ -657,7 +732,7 @@ jobs:
           MONGODB_URI: mongodb://admin:secret@localhost:27017
         run: npm test
 ```
-
+ 
 **Opciones importantes:**
  
 | Opción | Descripción |
@@ -667,7 +742,7 @@ jobs:
 | `ports` | Mapeo de puertos (host:container) |
 | `options` | Opciones de Docker adicionales |
 | Health checks | Aseguran que el servicio esté listo antes de los tests |
-
+ 
 **Recursos:**
 - [About service containers](https://docs.github.com/en/actions/using-containerized-services/about-service-containers)
 - [Creating PostgreSQL service containers](https://docs.github.com/en/actions/using-containerized-services/creating-postgresql-service-containers)
@@ -676,7 +751,7 @@ jobs:
 ### Strategy Matrix
  
 La **matriz de estrategia** permite ejecutar un job múltiples veces con diferentes configuraciones.
-
+ 
 #### Ejemplo básico
  
 ```yaml
@@ -702,7 +777,7 @@ jobs:
       - name: Test on ${{ matrix.os }}
         run: npm test
 ```
-
+ 
 #### Include y Exclude
  
 ```yaml
@@ -729,7 +804,7 @@ strategy:
       - os: macos-latest
         node-version: 18
 ```
-
+ 
 #### Fail-fast y max-parallel
  
 ```yaml
@@ -744,7 +819,7 @@ strategy:
     os: [ubuntu-latest, windows-latest, macos-latest]
     node-version: [18, 20, 22]
 ```
-
+ 
 #### Ejemplo completo con múltiples dimensiones
  
 ```yaml
@@ -794,7 +869,7 @@ jobs:
           echo "Python: ${{ matrix.python-version }}"
           echo "Experimental: ${{ matrix.experimental }}"
 ```
-
+ 
 #### Consideraciones de runners (Ubuntu 20.04 deprecation, Windows Server 2025)
  
 ```yaml
@@ -827,18 +902,17 @@ jobs:
           echo "Runner: ${{ matrix.runner-label }}"
           echo "OS: ${{ runner.os }}"
 ```
-
+ 
 **Recursos:**
 - [Using a matrix for your jobs](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
 - [Workflow syntax - strategy](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstrategy)
 - [Ubuntu 20.04 deprecation notice](https://github.blog/changelog/2024-09-16-notice-of-ubuntu-20-04-deprecation-on-github-actions/)
 - [GitHub Changelog](https://github.blog/changelog/)
 
-
 ### YAML Anchors y Aliases
  
 Los **anchors** (`&`) y **aliases** (`*`) permiten reutilizar configuraciones dentro de un mismo archivo YAML.
-
+ 
 #### Ejemplo básico
  
 ```yaml
@@ -884,7 +958,7 @@ jobs:
       - name: Test
         run: npm test
 ```
-
+ 
 #### Merge de múltiples anchors
  
 ```yaml
@@ -918,7 +992,7 @@ jobs:
     steps:
       - run: echo "Deploy to staging"
 ```
-
+ 
 #### Ejemplo complejo con steps reutilizables
  
 ```yaml
@@ -959,17 +1033,17 @@ jobs:
       - *setup-steps
       - *deploy-steps
 ```
-
+ 
 **Recursos:**
 - [Advanced YAML syntax (YAML spec)](https://yaml.org/spec/1.2.2/#3222-anchors-and-aliases)
 - [GitHub Actions workflow syntax](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions)
 
 ### Contexts y Predefined Contexts
-
+ 
 Los **contexts** son objetos que contienen información sobre el workflow, runner, jobs, y steps.
-
+ 
 #### Principales contexts
-
+ 
 **1. `github` context:**
  
 ```yaml
@@ -989,7 +1063,7 @@ steps:
       echo "Run number: ${{ github.run_number }}"
       echo "Run attempt: ${{ github.run_attempt }}"
 ```
-
+ 
 **2. `github.event` context:**
  
 ```yaml
@@ -1015,7 +1089,7 @@ jobs:
           echo "Issue title: ${{ github.event.issue.title }}"
           echo "Issue author: ${{ github.event.issue.user.login }}"
 ```
-
+ 
 **3. `runner` context:**
  
 ```yaml
@@ -1028,7 +1102,7 @@ steps:
       echo "Temp directory: ${{ runner.temp }}"
       echo "Tool cache: ${{ runner.tool_cache }}"
 ```
-
+ 
 **4. `env` context:**
  
 ```yaml
@@ -1049,7 +1123,7 @@ jobs:
           echo "Job: ${{ env.JOB_VAR }}"
           echo "Step: ${{ env.STEP_VAR }}"
 ```
-
+ 
 **5. `vars` y `secrets` contexts:**
  
 ```yaml
@@ -1064,7 +1138,7 @@ jobs:
         env:
           API_KEY: ${{ secrets.API_KEY }}
 ```
-
+ 
 **6. `inputs` context (workflow_dispatch / workflow_call):**
  
 ```yaml
@@ -1082,7 +1156,7 @@ jobs:
       - name: Use inputs
         run: echo "Deploying to ${{ inputs.environment }}"
 ```
-
+ 
 **7. `matrix` context:**
  
 ```yaml
@@ -1097,7 +1171,7 @@ steps:
       echo "OS: ${{ matrix.os }}"
       echo "Version: ${{ matrix.version }}"
 ```
-
+ 
 **8. `needs` context:**
  
 ```yaml
@@ -1119,7 +1193,7 @@ jobs:
           echo "Job1 result: ${{ needs.job1.result }}"
           echo "Job1 output: ${{ needs.job1.outputs.version }}"
 ```
-
+ 
 **9. `strategy` context:**
  
 ```yaml
@@ -1135,7 +1209,7 @@ steps:
       echo "Job index: ${{ strategy.job-index }}"
       echo "Job total: ${{ strategy.job-total }}"
 ```
-
+ 
 **10. `job` context:**
  
 ```yaml
@@ -1152,8 +1226,8 @@ jobs:
         image: postgres:15
     container:
       image: node:20
-```   
-
+```
+ 
 **11. `steps` context:**
  
 ```yaml
@@ -1172,7 +1246,7 @@ steps:
       echo "Step1 output: ${{ steps.step1.outputs.output }}"
       echo "Step2 output: ${{ steps.step2.outputs.data }}"
 ```
-
+ 
 **Recursos:**
 - [Contexts](https://docs.github.com/en/actions/learn-github-actions/contexts)
 - [github context](https://docs.github.com/en/actions/learn-github-actions/contexts#github-context)
@@ -1202,7 +1276,7 @@ jobs:
         if: ${{ steps.previous.outputs.value == 'success' }}
         run: echo "Condition met"
 ```
-
+ 
 #### Operadores disponibles
  
 ```yaml
@@ -1220,7 +1294,7 @@ steps:
       github.run_attempt >= 3
     run: echo "Number check"
 ```
-
+ 
 **Funciones de string disponibles:**
  
 ```yaml
@@ -1233,7 +1307,7 @@ steps:
       echo "${{ format('Version {0}.{1}', 1, 2) }}"
       echo "${{ join(matrix.os, ', ') }}"
 ```
-
+ 
 #### Prevenir secret leakage
  
 ```yaml
@@ -1262,7 +1336,7 @@ steps:
       echo "::add-mask::${{ secrets.API_KEY }}"
       echo "Key is configured"
 ```
-
+ 
 #### Funciones útiles
  
 ```yaml
@@ -1287,23 +1361,22 @@ steps:
       # hashFiles (para cache keys)
       echo "${{ hashFiles('**/package-lock.json') }}"
 ```
-
+ 
 **Recursos:**
 - [Expressions](https://docs.github.com/en/actions/learn-github-actions/expressions)
 - [Context and expression syntax](https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability)
 - [Encrypted secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 
 ### Immutable Actions y Version Pinning
-
+ 
 #### ¿Qué son las immutable actions?
-
+ 
 GitHub está implementando **immutable actions** en los runners hosted, lo que significa que las actions se ejecutarán desde una ubicación inmutable y verificada.
-
+ 
 **Implicaciones:**
 1. Las actions deben pinnearse a versiones específicas
 2. No se pueden usar referencias a ramas (como `@main`)
 3. Se recomienda usar commit SHA completo
-
 ```yaml
 steps:
   # ❌ NO recomendado - referencia a rama (mutable)
@@ -1318,7 +1391,7 @@ steps:
   # ✅ MÁS SEGURO - commit SHA completo (immutable)
   - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
 ```
-
+ 
 #### Estrategia de version pinning
  
 ```yaml
@@ -1344,7 +1417,7 @@ jobs:
         with:
           context: .
 ```
-
+ 
 #### Dependabot para actualizar actions
  
 Crea `.github/dependabot.yml`:
@@ -1368,7 +1441,7 @@ updates:
       - "github-actions"
 ```
  
- **Recursos:**
+**Recursos:**
 - [Security hardening for GitHub Actions](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions)
 - [Keeping your actions up to date with Dependabot](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/keeping-your-actions-up-to-date-with-dependabot)
 - [GitHub Changelog](https://github.blog/changelog/)
@@ -1382,8 +1455,8 @@ La extensión oficial para VS Code proporciona:
 - Validación de YAML en tiempo real
 - Autocompletado de contexts y expressions
 - Snippets para acciones comunes
-  
-**Recursos:**
+
+  **Recursos:**
 - [GitHub Actions VS Code Extension](https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-github-actions)
 - [VS Code GitHub Actions documentation](https://code.visualstudio.com/docs/azure/github-actions)
 
@@ -1411,7 +1484,7 @@ on: [push]
   }
 }
 ```
-
+ 
 **Recursos:**
 - [JSON Schema Store - GitHub Workflow](https://json.schemastore.org/github-workflow.json)
 
