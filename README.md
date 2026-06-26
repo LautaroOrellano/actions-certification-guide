@@ -6,11 +6,11 @@
 
 | Dominio | Peso en el examen | Archivo |
 |---------|-------------------|---------|
-| Domain 1: Author and Manage Workflows | 20–25% | [`01-domain1-author-manage-workflows.md`](./doc/01-domain.md) |
-| Domain 2: Consume and Troubleshoot Workflows | 15–20% | [`02-domain2-consume-troubleshoot-workflows.md`](./doc/02-domain.md) |
-| Domain 3: Author and Maintain Actions | 15–20% | [`03-domain3-author-maintain-actions.md`](./doc/03-domain.md) |
-| Domain 4: Manage GitHub Actions for the Enterprise | 20–25% | [`04-domain4-enterprise-management.md`](./doc/04-domain.md) |
-| Domain 5: Secure and Optimize Automation | 10–15% | [`05-domain5-secure-optimize-automation.md`](./doc/05-domain.md) |
+| Domain 1: Author and Manage Workflows | 20–25% | [`01-domain1-author-manage-workflows.md`](./docs/01-domain.md) |
+| Domain 2: Consume and Troubleshoot Workflows | 15–20% | [`02-domain2-consume-troubleshoot-workflows.md`](./docs/02-domain.md) |
+| Domain 3: Author and Maintain Actions | 15–20% | [`03-domain3-author-maintain-actions.md`](./docs/03-domain.md) |
+| Domain 4: Manage GitHub Actions for the Enterprise | 20–25% | [`04-domain4-enterprise-management.md`](./docs/04-domain.md) |
+| Domain 5: Secure and Optimize Automation | 10–15% | [`05-domain5-secure-optimize-automation.md`](./docs/05-domain.md) |
 
 ## 📋 Contenido por dominio
 
