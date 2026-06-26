@@ -2,7 +2,7 @@
 
 > Guía completa para la certificación GitHub Actions GH-200
  
-## 📑 Tabla de Contenidos
+## Tabla de Contenidos
  
 - [1.1 Configure workflow triggers and events](#11-configure-workflow-triggers-and-events)
 - [1.2 Design and implement workflow structure](#12-design-and-implement-workflow-structure)
