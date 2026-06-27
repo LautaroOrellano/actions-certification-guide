@@ -884,8 +884,8 @@ jobs:
  
 ---
  
-**⬅️ Anterior:** [Domain 3: Author and Maintain Actions](./03-domain3-author-maintain-actions.md)
-**➡️ Siguiente:** [Domain 5: Secure and Optimize Automation](./05-domain5-secure-optimize-automation.md)
+**⬅️ Anterior:** [Domain 3: Author and Maintain Actions](./docs/03-dominio.md)
+**➡️ Siguiente:** [Domain 5: Secure and Optimize Automation](./docs/05-dominio.md)
 
 
 
