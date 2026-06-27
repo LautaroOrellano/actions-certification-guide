@@ -979,7 +979,7 @@ curl -H "Authorization: token $GITHUB_TOKEN" \
 ---
  
 **⬅️ Anterior:** [Domain 4: Manage GitHub Actions for the Enterprise](./04-dominio.md)
-**⬆️ Volver al:** [Índice principal](./README.md)
+**⬆️ Volver al:** [Índice principal](../README.md)
 
 
 
