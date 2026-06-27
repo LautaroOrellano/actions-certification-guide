@@ -474,8 +474,8 @@ git push
 
 ---
  
-**⬅️ Anterior:** [Domain 1: Author and Manage Workflows](./01-domain1-author-manage-workflows.md)
-**➡️ Siguiente:** [Domain 3: Author and Maintain Actions](./03-domain3-author-maintain-actions.md)
+**⬅️ Anterior:** [Domain 1: Author and Manage Workflows](./01-dominio.md)
+**➡️ Siguiente:** [Domain 3: Author and Maintain Actions](./03-dominio.md)
 
 
 
