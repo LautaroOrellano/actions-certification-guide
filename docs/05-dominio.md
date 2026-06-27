@@ -2,7 +2,7 @@
  
 > Guía completa para la certificación GitHub Actions GH-200
  
-## 📑 Tabla de Contenidos
+## Tabla de Contenidos
  
 - [5.1 Implement security best practices](#51-implement-security-best-practices)
 - [5.2 Optimize workflow performance and cost](#52-optimize-workflow-performance-and-cost)
