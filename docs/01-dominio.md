@@ -2012,7 +2012,7 @@ jobs:
 
 ---
  
-**➡️ Siguiente:** [Domain 2: Consume and Troubleshoot Workflows](./02-domain2-consume-troubleshoot-workflows.md)
+**➡️ Siguiente:** [Domain 2: Consume and Troubleshoot Workflows](./docs/02-dominio.md)
 
 
 
