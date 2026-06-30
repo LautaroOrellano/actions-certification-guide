@@ -12,7 +12,7 @@
 | Domain 4: Manage GitHub Actions for the Enterprise | 20–25% | [`04-dominio.md`](./docs/04-dominio.md) |
 | Domain 5: Secure and Optimize Automation | 10–15% | [`05-dominio.md`](./docs/05-dominio.md) |
 
-## 📋 Contenido por dominio
+## Contenido por dominio
 
 ### Domain 1 - Author and Manage Workflows
 - Triggers: scheduled, manual (`workflow_dispatch`), webhook, repository events
